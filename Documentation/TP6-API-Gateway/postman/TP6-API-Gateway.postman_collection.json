@@ -1,0 +1,199 @@
+{
+  "info": {
+    "name": "Atelier API Gateway - Gestion Meteo (TP6)",
+    "description": "Toutes les requetes passent par l'API Gateway (port 8090). Prerequis : Eureka (8761), MEETING (8083 + 8085), NOTIFICATION (8084 + 8086) et api-gateway (8090) demarres.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "gateway", "value": "http://localhost:8090" }
+  ],
+  "item": [
+    {
+      "name": "1 - Routage statique lb:// (application.yml)",
+      "item": [
+        {
+          "name": "MEETING - hello",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{gateway}}/api/meetings/hello",
+            "description": "Route meeting-route : /api/meetings/** -> lb://MEETING (strategie Random, Circuit Breaker meetingCB). Reponse attendue : 200 {\"service\":\"MEETING\",\"port\":8083|8085,\"message\":\"Hello from Meeting service\"}"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+            "const b = pm.response.json();",
+            "pm.test('Reponse du service MEETING (pas le fallback)', () => { pm.expect(b.service).to.eql('MEETING'); pm.expect(b.degraded).to.be.undefined; });",
+            "pm.test('Instance 8083 ou 8085', () => pm.expect([8083, 8085]).to.include(b.port));"
+          ] } }]
+        },
+        {
+          "name": "NOTIFICATION - hello",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{gateway}}/api/notifications/hello",
+            "description": "Route notification-route : /api/notifications/** -> lb://NOTIFICATION (strategie par defaut Round Robin). Reponse attendue : 200 {\"service\":\"NOTIFICATION\",\"port\":8084|8086,\"message\":\"Hello from Notification service\"}"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+            "const b = pm.response.json();",
+            "pm.test('Reponse du service NOTIFICATION', () => pm.expect(b.service).to.eql('NOTIFICATION'));",
+            "pm.test('Instance 8084 ou 8086', () => pm.expect([8084, 8086]).to.include(b.port));"
+          ] } }]
+        }
+      ]
+    },
+    {
+      "name": "2 - Routage statique URI directe sans Eureka (RouteLocator Java)",
+      "item": [
+        {
+          "name": "MEETING - hello (http://localhost:8083)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{gateway}}/static/api/meetings/hello",
+            "description": "Route meeting-static : /static/api/meetings/** -> http://localhost:8083 (StripPrefix=1). Toujours l'instance 8083."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+            "const b = pm.response.json();",
+            "pm.test('MEETING sur le port fixe 8083', () => { pm.expect(b.service).to.eql('MEETING'); pm.expect(b.port).to.eql(8083); });"
+          ] } }]
+        },
+        {
+          "name": "NOTIFICATION - hello (http://localhost:8084)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{gateway}}/static/api/notifications/hello",
+            "description": "Route notification-static : /static/api/notifications/** -> http://localhost:8084 (StripPrefix=1). Toujours l'instance 8084."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+            "const b = pm.response.json();",
+            "pm.test('NOTIFICATION sur le port fixe 8084', () => { pm.expect(b.service).to.eql('NOTIFICATION'); pm.expect(b.port).to.eql(8084); });"
+          ] } }]
+        }
+      ]
+    },
+    {
+      "name": "3 - Routage dynamique (Discovery Locator Eureka)",
+      "item": [
+        {
+          "name": "MEETING - hello (/meeting/...)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{gateway}}/meeting/api/meetings/hello",
+            "description": "Route generee automatiquement ReactiveCompositeDiscoveryClient_MEETING : /meeting/** -> lb://MEETING (prefixe retire)."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+            "pm.test('Reponse du service MEETING', () => pm.expect(pm.response.json().service).to.eql('MEETING'));"
+          ] } }]
+        },
+        {
+          "name": "NOTIFICATION - hello (/notification/...)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{gateway}}/notification/api/notifications/hello",
+            "description": "Route generee automatiquement ReactiveCompositeDiscoveryClient_NOTIFICATION : /notification/** -> lb://NOTIFICATION."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+            "pm.test('Reponse du service NOTIFICATION', () => pm.expect(pm.response.json().service).to.eql('NOTIFICATION'));"
+          ] } }]
+        }
+      ]
+    },
+    {
+      "name": "4 - Documentation OpenAPI (via Gateway)",
+      "item": [
+        {
+          "name": "Swagger UI - configuration du portail unifie",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{gateway}}/v3/api-docs/swagger-config",
+            "description": "Liste des documentations agregees par http://localhost:8090/swagger-ui.html"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+            "const urls = pm.response.json().urls.map(u => u.url);",
+            "pm.test('Agrege MEETING et NOTIFICATION', () => { pm.expect(urls).to.include('/api-docs/meeting'); pm.expect(urls).to.include('/api-docs/notification'); });"
+          ] } }]
+        },
+        {
+          "name": "MEETING - contrat OpenAPI",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{gateway}}/api-docs/meeting",
+            "description": "Route meeting-api-docs -> lb://MEETING/v3/api-docs"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+            "pm.test('Documente /api/meetings/hello', () => pm.expect(pm.response.json().paths).to.have.property('/api/meetings/hello'));"
+          ] } }]
+        },
+        {
+          "name": "NOTIFICATION - contrat OpenAPI",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{gateway}}/api-docs/notification",
+            "description": "Route notification-api-docs -> lb://NOTIFICATION/openapi.json (genere par FastAPI)"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+            "pm.test('Documente /api/notifications/hello', () => pm.expect(pm.response.json().paths).to.have.property('/api/notifications/hello'));"
+          ] } }]
+        }
+      ]
+    },
+    {
+      "name": "5 - Supervision de la Gateway",
+      "item": [
+        {
+          "name": "API-GATEWAY - health",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{gateway}}/actuator/health"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+            "pm.test('Status UP', () => pm.expect(pm.response.json().status).to.eql('UP'));"
+          ] } }]
+        },
+        {
+          "name": "API-GATEWAY - liste des routes",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{gateway}}/actuator/gateway/routes"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+            "const ids = pm.response.json().map(r => r.route_id);",
+            "pm.test('Routes statiques et dynamiques presentes', () => { ['meeting-route','notification-route','meeting-static','notification-static','ReactiveCompositeDiscoveryClient_MEETING','ReactiveCompositeDiscoveryClient_NOTIFICATION'].forEach(id => pm.expect(ids).to.include(id)); });"
+          ] } }]
+        },
+        {
+          "name": "API-GATEWAY - etat du Circuit Breaker",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{gateway}}/actuator/circuitbreakers",
+            "description": "Etat de meetingCB : CLOSED en fonctionnement normal, OPEN apres arret de MEETING."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+            "pm.test('meetingCB declare', () => pm.expect(pm.response.json().circuitBreakers).to.have.property('meetingCB'));"
+          ] } }]
+        }
+      ]
+    }
+  ]
+}

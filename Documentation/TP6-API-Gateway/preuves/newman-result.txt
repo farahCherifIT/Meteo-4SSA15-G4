@@ -1,0 +1,92 @@
+(node:37312) [DEP0176] DeprecationWarning: fs.F_OK is deprecated, use fs.constants.F_OK instead
+(Use `node --trace-deprecation ...` to show where the warning was created)
+newman
+
+Atelier API Gateway - Gestion Meteo (TP6)
+
+□ 1 - Routage statique lb:// (application.yml)
+└ MEETING - hello
+  GET http://localhost:8090/api/meetings/hello [200 OK, 260B, 49ms]
+  √  HTTP 200
+  √  Reponse du service MEETING (pas le fallback)
+  √  Instance 8083 ou 8085
+
+└ NOTIFICATION - hello
+  GET http://localhost:8090/api/notifications/hello [200 OK, 207B, 11ms]
+  √  HTTP 200
+  √  Reponse du service NOTIFICATION
+  √  Instance 8084 ou 8086
+
+□ 2 - Routage statique URI directe sans Eureka (RouteLocator Java)
+└ MEETING - hello (http://localhost:8083)
+  GET http://localhost:8090/static/api/meetings/hello [200 OK, 260B, 10ms]
+  √  HTTP 200
+  √  MEETING sur le port fixe 8083
+
+└ NOTIFICATION - hello (http://localhost:8084)
+  GET http://localhost:8090/static/api/notifications/hello [200 OK, 207B, 12ms]
+  √  HTTP 200
+  √  NOTIFICATION sur le port fixe 8084
+
+□ 3 - Routage dynamique (Discovery Locator Eureka)
+└ MEETING - hello (/meeting/...)
+  GET http://localhost:8090/meeting/api/meetings/hello [200 OK, 260B, 8ms]
+  √  HTTP 200
+  √  Reponse du service MEETING
+
+└ NOTIFICATION - hello (/notification/...)
+  GET http://localhost:8090/notification/api/notifications/hello [200 OK, 207B, 10ms]
+  √  HTTP 200
+  √  Reponse du service NOTIFICATION
+
+□ 4 - Documentation OpenAPI (via Gateway)
+└ Swagger UI - configuration du portail unifie
+  GET http://localhost:8090/v3/api-docs/swagger-config [200 OK, 462B, 4ms]
+  √  HTTP 200
+  √  Agrege MEETING et NOTIFICATION
+
+└ MEETING - contrat OpenAPI
+  GET http://localhost:8090/api-docs/meeting [200 OK, 902B, 9ms]
+  √  HTTP 200
+  √  Documente /api/meetings/hello
+
+└ NOTIFICATION - contrat OpenAPI
+  GET http://localhost:8090/api-docs/notification [200 OK, 421B, 10ms]
+  √  HTTP 200
+  √  Documente /api/notifications/hello
+
+□ 5 - Supervision de la Gateway
+└ API-GATEWAY - health
+  GET http://localhost:8090/actuator/health [200 OK, 1.11kB, 7ms]
+  √  HTTP 200
+  √  Status UP
+
+└ API-GATEWAY - liste des routes
+  GET http://localhost:8090/actuator/gateway/routes [200 OK, 2.6kB, 4ms]
+  √  HTTP 200
+  √  Routes statiques et dynamiques presentes
+
+└ API-GATEWAY - etat du Circuit Breaker
+  GET http://localhost:8090/actuator/circuitbreakers [200 OK, 321B, 3ms]
+  √  HTTP 200
+  √  meetingCB declare
+
+┌─────────────────────────┬──────────────────┬──────────────────┐
+│                         │         executed │           failed │
+├─────────────────────────┼──────────────────┼──────────────────┤
+│              iterations │                1 │                0 │
+├─────────────────────────┼──────────────────┼──────────────────┤
+│                requests │               12 │                0 │
+├─────────────────────────┼──────────────────┼──────────────────┤
+│            test-scripts │               12 │                0 │
+├─────────────────────────┼──────────────────┼──────────────────┤
+│      prerequest-scripts │                0 │                0 │
+├─────────────────────────┼──────────────────┼──────────────────┤
+│              assertions │               26 │                0 │
+├─────────────────────────┴──────────────────┴──────────────────┤
+│ total run duration: 1132ms                                    │
+├───────────────────────────────────────────────────────────────┤
+│ total data received: 5.67kB (approx)                          │
+├───────────────────────────────────────────────────────────────┤
+│ average response time: 11ms [min: 3ms, max: 49ms, s.d.: 11ms] │
+└───────────────────────────────────────────────────────────────┘

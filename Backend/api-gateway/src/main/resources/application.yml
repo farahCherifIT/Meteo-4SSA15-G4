@@ -1,0 +1,141 @@
+﻿# =============================================================================
+# API Gateway - Gestion Meteo (TP6)
+# =============================================================================
+server:
+  # 8080 est occupe par Oracle TNS Listener et WSL (wslrelay) -> port 8090
+  port: 8090
+
+spring:
+  application:
+    name: api-gateway
+
+  cloud:
+    gateway:
+      server:
+        webflux:
+          # -------------------------------------------------------------------
+          # ROUTAGE DYNAMIQUE (Discovery Locator)
+          # Une route est creee automatiquement pour chaque service enregistre
+          # dans Eureka :  /<nom-service-en-minuscules>/**  ->  lb://<service>
+          # ex. GET /meeting/api/meetings/hello
+          #     GET /notification/api/notifications/hello
+          # -------------------------------------------------------------------
+          discovery:
+            locator:
+              enabled: true
+              lower-case-service-id: true
+
+          # -------------------------------------------------------------------
+          # ROUTES DECLAREES EXPLICITEMENT (Partie 3 - Methode 2 : lb:// + Eureka)
+          # Les routes statiques SANS Eureka (Partie 2 - Methode 1, URI directe)
+          # sont definies en Java : tn.esprit.gateway.config.StaticRoutesConfig
+          # -------------------------------------------------------------------
+          routes:
+            - id: meeting-route
+              uri: lb://MEETING
+              predicates:
+                - Path=/api/meetings/**
+              filters:
+                # Bonus : Circuit Breaker + reponse de repli si MEETING est indisponible
+                - name: CircuitBreaker
+                  args:
+                    name: meetingCB
+                    fallbackUri: forward:/fallback/meeting
+
+            - id: notification-route
+              uri: lb://NOTIFICATION
+              predicates:
+                - Path=/api/notifications/**
+
+            # --- Contrats OpenAPI des microservices (agreges par Swagger UI) ---
+            - id: meeting-api-docs
+              uri: lb://MEETING
+              predicates:
+                - Path=/api-docs/meeting
+              filters:
+                - SetPath=/v3/api-docs
+
+            - id: notification-api-docs
+              uri: lb://NOTIFICATION
+              predicates:
+                - Path=/api-docs/notification
+              filters:
+                # FastAPI expose nativement son contrat OpenAPI sur /openapi.json
+                - SetPath=/openapi.json
+
+    loadbalancer:
+      # Cache de la liste d'instances (35 s par defaut) raccourci pour que les
+      # nouvelles instances soient prises en compte rapidement pendant la demo
+      cache:
+        ttl: 5s
+
+# -----------------------------------------------------------------------------
+# Eureka Client
+# -----------------------------------------------------------------------------
+eureka:
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    registry-fetch-interval-seconds: 5
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true
+
+# -----------------------------------------------------------------------------
+# Swagger UI unifie : http://localhost:8090/swagger-ui.html
+# -----------------------------------------------------------------------------
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    urls:
+      - name: meeting-service (MEETING)
+        url: /api-docs/meeting
+      - name: notification-service (NOTIFICATION)
+        url: /api-docs/notification
+      - name: api-gateway (fallbacks)
+        url: /v3/api-docs
+    urls-primary-name: meeting-service (MEETING)
+
+# -----------------------------------------------------------------------------
+# Bonus : Circuit Breaker Resilience4j
+# -----------------------------------------------------------------------------
+resilience4j:
+  circuitbreaker:
+    instances:
+      meetingCB:
+        sliding-window-size: 4
+        minimum-number-of-calls: 2
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 15s
+        permitted-number-of-calls-in-half-open-state: 1
+  timelimiter:
+    instances:
+      meetingCB:
+        timeout-duration: 5s
+
+# -----------------------------------------------------------------------------
+# Actuator : /actuator/health, /actuator/gateway/routes, /actuator/circuitbreakers
+# -----------------------------------------------------------------------------
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway,circuitbreakers
+  endpoint:
+    health:
+      show-details: always
+    gateway:
+      # "none" par defaut depuis Spring Cloud Gateway 5 ; read-only = consultation
+      # des routes (/actuator/gateway/routes) sans pouvoir les modifier
+      access: read-only
+
+# -----------------------------------------------------------------------------
+# Partie 3 - Question 2.a : visualiser le routage dans la console
+# -----------------------------------------------------------------------------
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+    reactor.netty.http.client: DEBUG
+    # Ligne de synthese "[LB] ..." (strategie + instance choisie)
+    tn.esprit.gateway: INFO

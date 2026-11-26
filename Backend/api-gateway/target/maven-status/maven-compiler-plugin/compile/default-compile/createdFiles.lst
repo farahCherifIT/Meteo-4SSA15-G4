@@ -1,0 +1,6 @@
+tn\esprit\gateway\config\RandomLoadBalancerConfig.class
+tn\esprit\gateway\config\LoadBalancerConfiguration.class
+tn\esprit\gateway\config\StaticRoutesConfig.class
+tn\esprit\gateway\filter\LoadBalancerLoggingFilter.class
+tn\esprit\gateway\web\FallbackController.class
+tn\esprit\gateway\ApiGatewayApplication.class

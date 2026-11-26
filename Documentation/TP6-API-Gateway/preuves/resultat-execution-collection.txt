@@ -1,0 +1,64 @@
+
+GET http://localhost:8090/api/meetings/hello  -> HTTP 200
+  {"service":"MEETING","port":8083,"message":"Hello from Meeting service"}
+  OK   HTTP 200
+  OK   Reponse du service MEETING (pas le fallback)
+  OK   Instance 8083 ou 8085
+
+GET http://localhost:8090/api/notifications/hello  -> HTTP 200
+  {"service":"NOTIFICATION","port":8086,"message":"Hello from Notification service"}
+  OK   HTTP 200
+  OK   Reponse du service NOTIFICATION
+  OK   Instance 8084 ou 8086
+
+GET http://localhost:8090/static/api/meetings/hello  -> HTTP 200
+  {"service":"MEETING","port":8083,"message":"Hello from Meeting service"}
+  OK   HTTP 200
+  OK   MEETING sur le port fixe 8083
+
+GET http://localhost:8090/static/api/notifications/hello  -> HTTP 200
+  {"service":"NOTIFICATION","port":8084,"message":"Hello from Notification service"}
+  OK   HTTP 200
+  OK   NOTIFICATION sur le port fixe 8084
+
+GET http://localhost:8090/meeting/api/meetings/hello  -> HTTP 200
+  {"service":"MEETING","port":8085,"message":"Hello from Meeting service"}
+  OK   HTTP 200
+  OK   Reponse du service MEETING
+
+GET http://localhost:8090/notification/api/notifications/hello  -> HTTP 200
+  {"service":"NOTIFICATION","port":8084,"message":"Hello from Notification service"}
+  OK   HTTP 200
+  OK   Reponse du service NOTIFICATION
+
+GET http://localhost:8090/v3/api-docs/swagger-config  -> HTTP 200
+  {"configUrl":"/v3/api-docs/swagger-config","oauth2RedirectUrl":"http://localhost:8090/swagger-ui/oauth2-redirect.html","urls":[{"url":"/v3/api-docs","name":"api...
+  OK   HTTP 200
+  OK   Agrege MEETING et NOTIFICATION
+
+GET http://localhost:8090/api-docs/meeting  -> HTTP 200
+  {"openapi":"3.0.3","info":{"title":"Meeting Service","version":"1.0.0","description":"Microservice Meeting (Node.js / Express) enregistre dans Eureka sous le no...
+  OK   HTTP 200
+  OK   Documente /api/meetings/hello
+
+GET http://localhost:8090/api-docs/notification  -> HTTP 200
+  {"openapi":"3.1.0","info":{"title":"Notification Service","version":"0.1.0"},"paths":{"/api/notifications/hello":{"get":{"summary":"Hello","operationId":"hello_...
+  OK   HTTP 200
+  OK   Documente /api/notifications/hello
+
+GET http://localhost:8090/actuator/health  -> HTTP 200
+  {"components":{"discoveryComposite":{"components":{"discoveryClient":{"details":{"services":["notification","api-gateway","risk-zone-service","risk-service","me...
+  OK   HTTP 200
+  OK   Status UP
+
+GET http://localhost:8090/actuator/gateway/routes  -> HTTP 200
+  [{"predicate":"Paths: [/static/api/meetings/**], match trailing slash: true","route_id":"meeting-static","filters":["[[StripPrefix parts = 1], order = 0]"],"uri...
+  OK   HTTP 200
+  OK   Routes statiques et dynamiques presentes
+
+GET http://localhost:8090/actuator/circuitbreakers  -> HTTP 200
+  {"circuitBreakers":{"meetingCB":{"bufferedCalls":1,"failedCalls":0,"failureRate":"-1.0%","failureRateThreshold":"50.0%","notPermittedCalls":0,"slowCallRate":"-1...
+  OK   HTTP 200
+  OK   meetingCB declare
+
+==== 26 assertions OK, 0 en echec ====

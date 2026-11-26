@@ -1,0 +1,6 @@
+C:\Users\ilyes\Documents\Meteo-4SSA15-G4-eureka\Backend\api-gateway\src\main\java\tn\esprit\gateway\ApiGatewayApplication.java
+C:\Users\ilyes\Documents\Meteo-4SSA15-G4-eureka\Backend\api-gateway\src\main\java\tn\esprit\gateway\config\LoadBalancerConfiguration.java
+C:\Users\ilyes\Documents\Meteo-4SSA15-G4-eureka\Backend\api-gateway\src\main\java\tn\esprit\gateway\config\RandomLoadBalancerConfig.java
+C:\Users\ilyes\Documents\Meteo-4SSA15-G4-eureka\Backend\api-gateway\src\main\java\tn\esprit\gateway\config\StaticRoutesConfig.java
+C:\Users\ilyes\Documents\Meteo-4SSA15-G4-eureka\Backend\api-gateway\src\main\java\tn\esprit\gateway\filter\LoadBalancerLoggingFilter.java
+C:\Users\ilyes\Documents\Meteo-4SSA15-G4-eureka\Backend\api-gateway\src\main\java\tn\esprit\gateway\web\FallbackController.java
